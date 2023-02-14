@@ -46,14 +46,14 @@ def validateDateArray(dateArray):
     return None
 
 
-def isDateAlreadyInAD(date):
-    diff = relativedelta.relativedelta(datetime.now(), date)
+def isDateAlreadyInAD(date, orgCreatedDate):
+    diff = relativedelta.relativedelta(orgCreatedDate, date)
     if diff.years >= 16:
         return True
     return False
 
-def getDateInAd(dateString):
-    dateArray = getDateArray(dateString) 
+def getDateInAd(dobString, orgCreatedDate):
+    dateArray = getDateArray(dobString) 
     print(dateArray)
     dateArray = validateDateArray(dateArray)
     
@@ -63,38 +63,34 @@ def getDateInAd(dateString):
     year = int(dateArray[0])
     month = int(dateArray[1])
     day = int(dateArray[2])
-    
-    convertedDate = date(year, month, day)
+
+    dob = date(year, month, day)
     print("year: ", year, "month: ", month, "day: ", day)
 
-    if isDateAlreadyInAD(convertedDate):
-        return convertedDate
+    if isDateAlreadyInAD(dob, orgCreatedDate):
+        return dob
 
     print("converting to ad")
     return nepali_datetime.date(year, month, day).to_datetime_date()
 
-    
-    # return date(int(dateInAd[0]), int(dateInAd[1]), int(dateInAd[2]))
-
-
-    # print(date)
-    # return datetime.date(year, month, day)
-
-
 def getAllOwners():
-    selectOwners = "Select * from test;"
+    selectOwners = "Select id, org_created_date, date_in_bs, date_in_ad from test;"
     mycursor.execute(selectOwners)
     return mycursor.fetchall()
 
 
 def updateAllDateOfBirthToAD(owners):
     for owner in owners:
-        if owner[1] is not None:
+        ownerId = owner[0]
+        orgCreatedDate = owner[1]
+        dateInBs = owner[2]
+
+        if dateInBs is not None and orgCreatedDate is not None:
             try:
-                newDate = getDateInAd(owner[1])
+                newDate = getDateInAd(dateInBs, orgCreatedDate)
                 
                 if newDate is None:
-                    print("skipping row with id: ", owner[0], ". Could not convert ", owner[1] ,  "to AD")
+                    print("skipping row with id: ", ownerId, ". Could not convert ", dateInBs ,  "to AD")
                     continue
 
                 print(newDate)
@@ -102,9 +98,9 @@ def updateAllDateOfBirthToAD(owners):
                 updateQuery = "update test t set t.date_in_ad = %(newDate)s where t.id = %(id)s"
                 mycursor.execute(updateQuery, {
                     'newDate': newDate,
-                    'id': owner[0]
+                    'id': ownerId
                 })
-                print("Row updated of id: ", owner[0], ". Updated row count: ", mycursor.rowcount)    
+                print("Row updated of id: ", ownerId, ". Updated row count: ", mycursor.rowcount)    
             except Exception as ex:
                 print(ex)
 
@@ -120,9 +116,3 @@ main()
 
 mydb.commit()
 
-
-# print(mycursor.rowcount, "record(s) affected")
-
-# sql = "insert into test(`date_in_bs`) values('2022-01-01');"
-# selectOwners = "Select * from test;"
-# mycursor.execute(selectOwners)
