@@ -1,7 +1,7 @@
 import mysql.connector
 from datetime import datetime, date
 from dateutil import relativedelta
-from pyBSDate import convert_BS_to_AD #https://github.com/SushilShrestha/pyBSDate
+import nepali_datetime #https://github.com/dxillar/nepali-datetime
 
 
 mydb = mysql.connector.connect(
@@ -60,21 +60,21 @@ def getDateInAd(dateString):
     if dateArray is None:
         return None
 
-    year = dateArray[0]
-    month = dateArray[1]
-    day = dateArray[2]
-    try:
-        convertedDate = date(int(year), int(month), int(day))
-    except:
-        return None
-
+    year = int(dateArray[0])
+    month = int(dateArray[1])
+    day = int(dateArray[2])
+    
+    convertedDate = date(year, month, day)
     print("year: ", year, "month: ", month, "day: ", day)
 
     if isDateAlreadyInAD(convertedDate):
         return convertedDate
 
-    dateInAd = convert_BS_to_AD(year, month, day)
-    return date(int(dateInAd[0]), int(dateInAd[1]), int(dateInAd[2]))
+    print("converting to ad")
+    return nepali_datetime.date(year, month, day).to_datetime_date()
+
+    
+    # return date(int(dateInAd[0]), int(dateInAd[1]), int(dateInAd[2]))
 
 
     # print(date)
@@ -90,20 +90,23 @@ def getAllOwners():
 def updateAllDateOfBirthToAD(owners):
     for owner in owners:
         if owner[1] is not None:
-            newDate = getDateInAd(owner[1])
-            
-            if newDate is None:
-                print("skipping row with id: ", owner[0], ". Could not convert ", owner[1] ,  "to AD")
-                continue
+            try:
+                newDate = getDateInAd(owner[1])
+                
+                if newDate is None:
+                    print("skipping row with id: ", owner[0], ". Could not convert ", owner[1] ,  "to AD")
+                    continue
 
-            print(newDate)
+                print(newDate)
 
-            updateQuery = "update test t set t.date_in_ad = %(newDate)s where t.id = %(id)s"
-            mycursor.execute(updateQuery, {
-                'newDate': newDate,
-                'id': owner[0]
-            })
-            print("Row updated of id: ", owner[0], ". Updated row count: ", mycursor.rowcount)    
+                updateQuery = "update test t set t.date_in_ad = %(newDate)s where t.id = %(id)s"
+                mycursor.execute(updateQuery, {
+                    'newDate': newDate,
+                    'id': owner[0]
+                })
+                print("Row updated of id: ", owner[0], ". Updated row count: ", mycursor.rowcount)    
+            except Exception as ex:
+                print(ex)
 
 
 def main():
